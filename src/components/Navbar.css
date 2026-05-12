@@ -1,0 +1,47 @@
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 24px;
+  background: #111827;
+  color: white;
+  flex-wrap: wrap;
+}
+
+.navbar__brand {
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+.navbar__links {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.navbar__links a {
+  color: white;
+  text-decoration: none;
+  opacity: 0.85;
+}
+
+.navbar__links a.active {
+  opacity: 1;
+  text-decoration: underline;
+}
+
+.navbar__right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.navbar__right button {
+  border: none;
+  background: #ef4444;
+  color: white;
+  padding: 8px 12px;
+  border-radius: 10px;
+  cursor: pointer;
+}
