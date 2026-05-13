@@ -15,11 +15,7 @@ app.use(
   cors({
     origin: function (origin, callback) {
       if (!origin) return callback(null, true);
-
-      if (allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      }
-
+      if (allowedOrigins.includes(origin)) return callback(null, true);
       return callback(new Error("Not allowed by CORS"));
     },
   })
@@ -41,6 +37,17 @@ const transporter = nodemailer.createTransport({
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,
   },
+  connectionTimeout: 10000,
+  greetingTimeout: 10000,
+  socketTimeout: 10000,
+});
+
+transporter.verify((err, success) => {
+  if (err) {
+    console.error("SMTP non disponible :", err.message);
+  } else {
+    console.log("SMTP prêt :", success);
+  }
 });
 
 function generateCode() {
@@ -60,25 +67,35 @@ app.post("/api/send-code", async (req, res) => {
 
     codes.set(email, { code, expiresAt });
 
-    await transporter.sendMail({
-      from: process.env.FROM_EMAIL || process.env.SMTP_USER,
-      to: email,
-      subject: "Code de confirmation Task Gabon",
-      text: `Ton code de confirmation est : ${code}`,
-      html: `
-        <div style="font-family: Arial, sans-serif;">
-          <h2>Code de confirmation</h2>
-          <p>Ton code est :</p>
-          <div style="font-size: 28px; font-weight: bold; letter-spacing: 6px;">${code}</div>
-          <p>Il expire dans 10 minutes.</p>
-        </div>
-      `,
-    });
+    // On répond tout de suite au frontend pour éviter le blocage
+    res.json({ message: "Code généré, envoi en cours." });
 
-    res.json({ message: "Code envoyé avec succès." });
+    // Envoi du mail en arrière-plan
+    try {
+      await transporter.sendMail({
+        from: process.env.FROM_EMAIL || process.env.SMTP_USER,
+        to: email,
+        subject: "Code de confirmation Task Gabon",
+        text: `Ton code de confirmation est : ${code}`,
+        html: `
+          <div style="font-family: Arial, sans-serif;">
+            <h2>Code de confirmation</h2>
+            <p>Ton code est :</p>
+            <div style="font-size: 28px; font-weight: bold; letter-spacing: 6px;">${code}</div>
+            <p>Il expire dans 10 minutes.</p>
+          </div>
+        `,
+      });
+
+      console.log(`Code envoyé à ${email} : ${code}`);
+    } catch (mailError) {
+      console.error("Erreur envoi mail :", mailError.message);
+    }
   } catch (error) {
     console.error("Erreur send-code:", error);
-    res.status(500).json({ message: "Erreur lors de l'envoi du code." });
+    if (!res.headersSent) {
+      res.status(500).json({ message: "Erreur lors de l'envoi du code." });
+    }
   }
 });
 
