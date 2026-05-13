@@ -6,8 +6,30 @@ require("dotenv").config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-app.use(cors({ origin: process.env.CLIENT_URL || "http://localhost:5173" }));
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://splendorous-crepe-5a13a2.netlify.app",
+];
+
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      if (!origin) return callback(null, true);
+
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(new Error("Not allowed by CORS"));
+    },
+  })
+);
+
 app.use(express.json());
+
+app.get("/", (req, res) => {
+  res.json({ message: "Backend Task Gabon en ligne" });
+});
 
 const codes = new Map();
 
@@ -55,7 +77,7 @@ app.post("/api/send-code", async (req, res) => {
 
     res.json({ message: "Code envoyé avec succès." });
   } catch (error) {
-    console.error(error);
+    console.error("Erreur send-code:", error);
     res.status(500).json({ message: "Erreur lors de l'envoi du code." });
   }
 });
