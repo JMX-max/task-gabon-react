@@ -6,26 +6,37 @@ export default function Navbar() {
   const { logout, user } = useAuth();
   const navigate = useNavigate();
 
-  const handleLogout = () => {
-    logout();
-    navigate("/login");
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate("/login");
+    } catch (error) {
+      console.log(error);
+    }
   };
 
   return (
-    <header className="navbar">
-      <div className="navbar__brand">Task Gabon</div>
-
-      <nav className="navbar__links">
-        <NavLink to="/accueil">Accueil</NavLink>
-        <NavLink to="/a-propos">À propos</NavLink>
-        <NavLink to="/blog">Blog</NavLink>
-        <NavLink to="/contact">Contact</NavLink>
-      </nav>
-
-      <div className="navbar__right">
-        <span>{user?.name}</span>
-        <button onClick={handleLogout}>Déconnexion</button>
+    <nav className="navbar">
+      <div className="logo">
+        <h2>Task Gabon</h2>
       </div>
-    </header>
+
+      <div className="nav-links">
+        <NavLink to="/accueil">Accueil</NavLink>
+        <NavLink to="/blog">Blog</NavLink>
+        <NavLink to="/a-propos">À propos</NavLink>
+        <NavLink to="/contact">Contact</NavLink>
+      </div>
+
+      <div className="user-box">
+        <span>
+          {user?.displayName || user?.email}
+        </span>
+
+        <button onClick={handleLogout}>
+          Déconnexion
+        </button>
+      </div>
+    </nav>
   );
 }

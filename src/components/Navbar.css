@@ -2,46 +2,55 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 16px;
-  padding: 16px 24px;
-  background: #111827;
+  padding: 18px 40px;
+  background: #0f172a;
   color: white;
   flex-wrap: wrap;
+  gap: 20px;
 }
 
-.navbar__brand {
-  font-weight: 700;
-  font-size: 1.1rem;
+.logo h2 {
+  margin: 0;
 }
 
-.navbar__links {
+.nav-links {
   display: flex;
-  gap: 16px;
+  gap: 20px;
   flex-wrap: wrap;
 }
 
-.navbar__links a {
+.nav-links a {
   color: white;
   text-decoration: none;
-  opacity: 0.85;
+  font-weight: bold;
 }
 
-.navbar__links a.active {
-  opacity: 1;
-  text-decoration: underline;
+.nav-links a.active {
+  color: #38bdf8;
 }
 
-.navbar__right {
+.user-box {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 15px;
 }
 
-.navbar__right button {
+.user-box button {
   border: none;
-  background: #ef4444;
+  background: crimson;
   color: white;
-  padding: 8px 12px;
-  border-radius: 10px;
+  padding: 10px 14px;
+  border-radius: 8px;
   cursor: pointer;
+}
+
+.user-box button:hover {
+  opacity: 0.9;
+}
+
+@media screen and (max-width: 768px) {
+  .navbar {
+    flex-direction: column;
+    text-align: center;
+  }
 }

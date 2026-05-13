@@ -1,100 +1,89 @@
 const express = require("express");
 const cors = require("cors");
-const jwt = require("jsonwebtoken");
+const nodemailer = require("nodemailer");
 require("dotenv").config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
-const JWT_SECRET = process.env.JWT_SECRET || "secret123";
 
-app.use(cors({ origin: "http://localhost:5173" }));
+app.use(cors({ origin: process.env.CLIENT_URL || "http://localhost:5173" }));
 app.use(express.json());
 
-const products = [
-  {
-    id: 1,
-    name: "T-shirt React",
-    description: "Un t-shirt stylé pour les fans de React.",
-    price: 10000,
-    image: "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=800",
-  },
-  {
-    id: 2,
-    name: "Casquette Dev",
-    description: "Casquette moderne pour développeur.",
-    price: 8000,
-    image: "https://images.unsplash.com/photo-1523398002811-999ca8dec234?w=800",
-  },
-  {
-    id: 3,
-    name: "Sac Laptop",
-    description: "Sac pratique pour transporter ton ordinateur.",
-    price: 15000,
-    image: "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=800",
-  },
-];
+const codes = new Map();
 
-const blogPosts = [
-  {
-    id: 1,
-    title: "Comprendre React",
-    content: "React permet de créer des interfaces dynamiques avec des composants.",
+const transporter = nodemailer.createTransport({
+  host: process.env.SMTP_HOST,
+  port: Number(process.env.SMTP_PORT || 587),
+  secure: String(process.env.SMTP_SECURE).toLowerCase() === "true",
+  auth: {
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS,
   },
-  {
-    id: 2,
-    title: "Pourquoi utiliser les routes ?",
-    content: "Les routes servent à organiser les pages dans une application web.",
-  },
-  {
-    id: 3,
-    title: "Le rôle du backend",
-    content: "Le backend gère les données, l'authentification et les requêtes API.",
-  },
-];
+});
 
-function authMiddleware(req, res, next) {
-  const header = req.headers.authorization;
-  if (!header) return res.status(401).json({ message: "Token manquant" });
-
-  const token = header.split(" ")[1];
-
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET);
-    req.user = decoded;
-    next();
-  } catch {
-    return res.status(401).json({ message: "Token invalide" });
-  }
+function generateCode() {
+  return String(Math.floor(100000 + Math.random() * 900000));
 }
 
-app.get("/api/products", (req, res) => {
-  res.json(products);
+app.post("/api/send-code", async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ message: "Email manquant." });
+    }
+
+    const code = generateCode();
+    const expiresAt = Date.now() + 10 * 60 * 1000;
+
+    codes.set(email, { code, expiresAt });
+
+    await transporter.sendMail({
+      from: process.env.FROM_EMAIL || process.env.SMTP_USER,
+      to: email,
+      subject: "Code de confirmation Task Gabon",
+      text: `Ton code de confirmation est : ${code}`,
+      html: `
+        <div style="font-family: Arial, sans-serif;">
+          <h2>Code de confirmation</h2>
+          <p>Ton code est :</p>
+          <div style="font-size: 28px; font-weight: bold; letter-spacing: 6px;">${code}</div>
+          <p>Il expire dans 10 minutes.</p>
+        </div>
+      `,
+    });
+
+    res.json({ message: "Code envoyé avec succès." });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Erreur lors de l'envoi du code." });
+  }
 });
 
-app.get("/api/blog", (req, res) => {
-  res.json(blogPosts);
-});
+app.post("/api/verify-code", (req, res) => {
+  const { email, code } = req.body;
 
-app.post("/api/contact", (req, res) => {
-  console.log("Nouveau message contact :", req.body);
-  res.json({ message: "Message reçu avec succès" });
-});
-
-app.post("/api/login", (req, res) => {
-  const { email, password } = req.body;
-
-  if (email === "admin@mail.com" && password === "123456") {
-    const user = { id: 1, name: "Admin", email };
-    const token = jwt.sign(user, JWT_SECRET, { expiresIn: "1d" });
-
-    return res.json({ token, user });
+  if (!email || !code) {
+    return res.status(400).json({ message: "Email ou code manquant." });
   }
 
-  return res.status(401).json({ message: "Email ou mot de passe incorrect" });
-});
+  const stored = codes.get(email);
 
-app.get("/api/me", authMiddleware, (req, res) => {
-  res.json({ user: req.user });
+  if (!stored) {
+    return res.status(400).json({ message: "Aucun code trouvé pour cet email." });
+  }
+
+  if (Date.now() > stored.expiresAt) {
+    codes.delete(email);
+    return res.status(400).json({ message: "Code expiré." });
+  }
+
+  if (stored.code !== code) {
+    return res.status(400).json({ message: "Code incorrect." });
+  }
+
+  codes.delete(email);
+  return res.json({ message: "Code validé avec succès." });
 });
 
 app.listen(PORT, () => {

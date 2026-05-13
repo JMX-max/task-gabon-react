@@ -1,59 +1,59 @@
 import { useEffect, useMemo, useState } from "react";
-import "./home.css";
-
-const initialTasks = [
-  {
-    id: 1,
-    title: "Réviser le cours de React",
-    description: "Relire les composants, les props et les hooks avant le rendu.",
-    priority: "Haute",
-    completed: false,
-    category: "Études",
-  },
-  {
-    id: 2,
-    title: "Préparer le devoir pour l'école",
-    description: "Mettre le projet au propre avec un design simple et clair.",
-    priority: "Moyenne",
-    completed: true,
-    category: "Projet",
-  },
-  {
-    id: 3,
-    title: "Organiser les courses à Libreville",
-    description: "Gérer les tâches de la maison et les petites dépenses du jour.",
-    priority: "Basse",
-    completed: false,
-    category: "Maison",
-  },
-];
+import { useNavigate } from "react-router-dom";
 
 export default function Home() {
-  const [tasks, setTasks] = useState(initialTasks);
+  const navigate = useNavigate();
+  const currentUser = JSON.parse(localStorage.getItem("task-gabon-current-user") || "null");
+
+  const [tasks, setTasks] = useState(() => {
+    const saved = localStorage.getItem("task-gabon-tasks");
+    return saved
+      ? JSON.parse(saved)
+      : [
+          {
+            id: 1,
+            title: "Réviser React",
+            description: "Relire les composants et les hooks.",
+            priority: "Haute",
+            category: "Études",
+            completed: false,
+          },
+          {
+            id: 2,
+            title: "Préparer le projet",
+            description: "Mettre l'application au propre avant le rendu.",
+            priority: "Moyenne",
+            category: "Projet",
+            completed: true,
+          },
+        ];
+  });
+
   const [form, setForm] = useState({
     title: "",
     description: "",
     priority: "Moyenne",
     category: "Études",
   });
+
   const [editingId, setEditingId] = useState(null);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
 
+  useEffect(() => {
+    localStorage.setItem("task-gabon-tasks", JSON.stringify(tasks));
+  }, [tasks]);
+
   const stats = useMemo(() => {
     const total = tasks.length;
     const done = tasks.filter((t) => t.completed).length;
-    const pending = total - done;
-    return { total, done, pending };
+    return { total, done, pending: total - done };
   }, [tasks]);
 
   const visibleTasks = useMemo(() => {
     return tasks.filter((task) => {
-      const matchesSearch =
-        `${task.title} ${task.description} ${task.category}`
-          .toLowerCase()
-          .includes(search.toLowerCase());
-
+      const text = `${task.title} ${task.description} ${task.category}`.toLowerCase();
+      const matchesSearch = text.includes(search.toLowerCase());
       const matchesFilter =
         filter === "all" ||
         (filter === "done" && task.completed) ||
@@ -63,8 +63,9 @@ export default function Home() {
     });
   }, [tasks, search, filter]);
 
-  const handleSubmit = (e) => {
+  const submitTask = (e) => {
     e.preventDefault();
+
     if (!form.title.trim()) return;
 
     if (editingId !== null) {
@@ -73,7 +74,11 @@ export default function Home() {
       );
     } else {
       setTasks((prev) => [
-        { id: Date.now(), ...form, completed: false },
+        {
+          id: Date.now(),
+          ...form,
+          completed: false,
+        },
         ...prev,
       ]);
     }
@@ -87,6 +92,16 @@ export default function Home() {
     setEditingId(null);
   };
 
+  const editTask = (task) => {
+    setEditingId(task.id);
+    setForm({
+      title: task.title,
+      description: task.description,
+      priority: task.priority,
+      category: task.category,
+    });
+  };
+
   const toggleDone = (id) => {
     setTasks((prev) =>
       prev.map((task) =>
@@ -97,48 +112,39 @@ export default function Home() {
 
   const deleteTask = (id) => {
     setTasks((prev) => prev.filter((task) => task.id !== id));
-    if (editingId === id) {
-      setEditingId(null);
-      setForm({
-        title: "",
-        description: "",
-        priority: "Moyenne",
-        category: "Études",
-      });
-    }
   };
 
-  const editTask = (task) => {
-    setForm({
-      title: task.title,
-      description: task.description,
-      priority: task.priority,
-      category: task.category,
-    });
-    setEditingId(task.id);
+  const logout = () => {
+    localStorage.removeItem("task-gabon-current-user");
+    navigate("/login");
   };
-
-  useEffect(() => {
-    localStorage.setItem("task-gabon", JSON.stringify(tasks));
-  }, [tasks]);
 
   return (
     <main className="page">
-      <section className="hero">
-        <h1>Accueil</h1>
-        <p>
-          Une application de gestion de tâches inspirée de la vie quotidienne au Gabon :
-          école, maison, petits projets, organisation personnelle et travail en groupe.
-        </p>
-      </section>
+<header className="hero">
+  <div className="hero-top">
+    <div>
+      <h1>Accueil</h1>
+
+      <p>
+        Bonjour {currentUser?.prenom} {currentUser?.nom}, ton espace personnel est prêt.
+      </p>
+    </div>
+
+    <button className="logout-btn" onClick={logout}>
+      Déconnexion
+    </button>
+  </div>
+</header>
 
       <section className="home-grid">
         <div className="blog-card">
           <h2>Ajouter une tâche</h2>
-          <form onSubmit={handleSubmit} className="form">
+
+          <form className="form" onSubmit={submitTask}>
             <input
               type="text"
-              placeholder="Titre de la tâche"
+              placeholder="Titre"
               value={form.title}
               onChange={(e) => setForm({ ...form, title: e.target.value })}
             />
@@ -148,14 +154,6 @@ export default function Home() {
               onChange={(e) => setForm({ ...form, description: e.target.value })}
             />
             <select
-              value={form.priority}
-              onChange={(e) => setForm({ ...form, priority: e.target.value })}
-            >
-              <option>Haute</option>
-              <option>Moyenne</option>
-              <option>Basse</option>
-            </select>
-            <select
               value={form.category}
               onChange={(e) => setForm({ ...form, category: e.target.value })}
             >
@@ -164,9 +162,17 @@ export default function Home() {
               <option>Projet</option>
               <option>Travail</option>
             </select>
+            <select
+              value={form.priority}
+              onChange={(e) => setForm({ ...form, priority: e.target.value })}
+            >
+              <option>Haute</option>
+              <option>Moyenne</option>
+              <option>Basse</option>
+            </select>
 
             <button type="submit">
-              {editingId ? "Modifier la tâche" : "Ajouter la tâche"}
+              {editingId ? "Mettre à jour" : "Ajouter"}
             </button>
           </form>
 
@@ -192,7 +198,7 @@ export default function Home() {
           <div className="search-row">
             <input
               type="text"
-              placeholder="Rechercher une tâche..."
+              placeholder="Rechercher..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
@@ -204,40 +210,31 @@ export default function Home() {
           </div>
 
           <div className="task-list">
-            {visibleTasks.length === 0 ? (
-              <p>Aucune tâche trouvée.</p>
-            ) : (
-              visibleTasks.map((task) => (
-                <article key={task.id} className={`task-item ${task.completed ? "done" : ""}`}>
-                  <div>
-                    <h3>{task.title}</h3>
-                    <p>{task.description}</p>
-                    <small>
-                      Priorité : {task.priority} | Catégorie : {task.category}
-                    </small>
-                  </div>
+            {visibleTasks.map((task) => (
+              <article key={task.id} className={`task-item ${task.completed ? "done" : ""}`}>
+                <div>
+                  <h3>{task.title}</h3>
+                  <p>{task.description}</p>
+                  <small>
+                    Priorité : {task.priority} | Catégorie : {task.category}
+                  </small>
+                </div>
 
-                  <div className="task-actions">
-                    <button onClick={() => toggleDone(task.id)}>
-                      {task.completed ? "Annuler" : "Terminer"}
-                    </button>
-                    <button onClick={() => editTask(task)}>Éditer</button>
-                    <button onClick={() => deleteTask(task.id)}>Supprimer</button>
-                  </div>
-                </article>
-              ))
-            )}
+                <div className="task-actions">
+                  <button type="button" onClick={() => toggleDone(task.id)}>
+                    {task.completed ? "Annuler" : "Terminer"}
+                  </button>
+                  <button type="button" onClick={() => editTask(task)}>
+                    Éditer
+                  </button>
+                  <button type="button" onClick={() => deleteTask(task.id)}>
+                    Supprimer
+                  </button>
+                </div>
+              </article>
+            ))}
           </div>
         </div>
-      </section>
-
-      <section className="blog-card" style={{ marginTop: "20px" }}>
-        <h2>Pourquoi cette page correspond bien au contexte gabonais ?</h2>
-        <p>
-          Dans un pays très urbanisé comme le Gabon, où la vie scolaire, les petits projets,
-          les déplacements et l’organisation du quotidien sont importants, une application
-          de tâches simple comme celle-ci aide à mieux planifier sa journée.
-        </p>
       </section>
     </main>
   );

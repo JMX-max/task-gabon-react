@@ -1,55 +1,83 @@
 import { createContext, useContext, useEffect, useState } from "react";
+import {
+  createUserWithEmailAndPassword,
+  onAuthStateChanged,
+  signInWithEmailAndPassword,
+  signOut,
+  updateProfile,
+} from "firebase/auth";
+import { auth } from "../firebase";
 
-const AuthContext = createContext();
-const API_URL = "http://localhost:5000";
+const AuthContext = createContext(null);
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(() => {
-    const saved = localStorage.getItem("user");
-    return saved ? JSON.parse(saved) : null;
-  });
-
-  const [token, setToken] = useState(() => localStorage.getItem("token") || "");
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (user) localStorage.setItem("user", JSON.stringify(user));
-    else localStorage.removeItem("user");
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      setLoading(false);
+    });
 
-    if (token) localStorage.setItem("token", token);
-    else localStorage.removeItem("token");
-  }, [user, token]);
+    return unsubscribe;
+  }, []);
 
   const login = async (email, password) => {
-    const res = await fetch(`${API_URL}/api/login`, {
+    const cred = await signInWithEmailAndPassword(auth, email, password);
+    return cred.user;
+  };
+
+  const logout = async () => {
+    await signOut(auth);
+  };
+
+  const requestCode = async (email) => {
+    const res = await fetch(`${API_URL}/api/send-code`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ email }),
     });
 
     const data = await res.json();
-
     if (!res.ok) {
-      throw new Error(data.message || "Erreur de connexion");
+      throw new Error(data.message || "Impossible d'envoyer le code");
     }
 
-    setUser(data.user);
-    setToken(data.token);
     return data;
   };
 
-  const logout = () => {
-    setUser(null);
-    setToken("");
+  const registerWithCode = async ({ name, email, password, code }) => {
+    const verify = await fetch(`${API_URL}/api/verify-code`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, code }),
+    });
+
+    const verifyData = await verify.json();
+    if (!verify.ok) {
+      throw new Error(verifyData.message || "Code invalide");
+    }
+
+    const cred = await createUserWithEmailAndPassword(auth, email, password);
+
+    await updateProfile(cred.user, {
+      displayName: name,
+    });
+
+    return cred.user;
   };
 
   return (
     <AuthContext.Provider
       value={{
         user,
-        token,
+        loading,
         login,
         logout,
-        isAuthenticated: !!token,
+        requestCode,
+        registerWithCode,
       }}
     >
       {children}
