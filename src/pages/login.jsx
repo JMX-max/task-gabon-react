@@ -51,11 +51,7 @@ export default function Login() {
           Pas encore inscrit ? <Link to="/register">Créer un compte</Link>
         </p>
 
-        <div className="hint-box">
-          <strong>Compte de test</strong>
-          <p>Email : admin@mail.com</p>
-          <p>Mot de passe : 123456</p>
-        </div>
+      
       </section>
     </main>
   );
