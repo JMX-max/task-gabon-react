@@ -62,40 +62,35 @@ app.post("/api/send-code", async (req, res) => {
       return res.status(400).json({ message: "Email manquant." });
     }
 
+    if (!process.env.SMTP_USER || !process.env.SMTP_PASS || !process.env.SMTP_HOST) {
+      return res.status(500).json({ message: "Configuration SMTP manquante." });
+    }
+
     const code = generateCode();
     const expiresAt = Date.now() + 10 * 60 * 1000;
 
     codes.set(email, { code, expiresAt });
 
-    // On répond tout de suite au frontend pour éviter le blocage
-    res.json({ message: "Code généré, envoi en cours." });
+    await transporter.sendMail({
+      from: process.env.FROM_EMAIL || process.env.SMTP_USER,
+      to: email,
+      subject: "Code de confirmation Task Gabon",
+      text: `Ton code de confirmation est : ${code}`,
+      html: `
+        <div style="font-family: Arial, sans-serif;">
+          <h2>Code de confirmation</h2>
+          <p>Ton code est :</p>
+          <div style="font-size: 28px; font-weight: bold; letter-spacing: 6px;">${code}</div>
+          <p>Il expire dans 10 minutes.</p>
+        </div>
+      `,
+    });
 
-    // Envoi du mail en arrière-plan
-    try {
-      await transporter.sendMail({
-        from: process.env.FROM_EMAIL || process.env.SMTP_USER,
-        to: email,
-        subject: "Code de confirmation Task Gabon",
-        text: `Ton code de confirmation est : ${code}`,
-        html: `
-          <div style="font-family: Arial, sans-serif;">
-            <h2>Code de confirmation</h2>
-            <p>Ton code est :</p>
-            <div style="font-size: 28px; font-weight: bold; letter-spacing: 6px;">${code}</div>
-            <p>Il expire dans 10 minutes.</p>
-          </div>
-        `,
-      });
-
-      console.log(`Code envoyé à ${email} : ${code}`);
-    } catch (mailError) {
-      console.error("Erreur envoi mail :", mailError.message);
-    }
+    console.log(`Code envoyé à ${email} : ${code}`);
+    return res.json({ message: "Code envoyé avec succès." });
   } catch (error) {
     console.error("Erreur send-code:", error);
-    if (!res.headersSent) {
-      res.status(500).json({ message: "Erreur lors de l'envoi du code." });
-    }
+    return res.status(500).json({ message: "Erreur lors de l'envoi du code." });
   }
 });
 
