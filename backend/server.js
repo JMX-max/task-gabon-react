@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const nodemailer = require("nodemailer");
+const crypto = require("crypto");
 require("dotenv").config();
 
 const app = express();
@@ -27,7 +28,8 @@ app.get("/", (req, res) => {
   res.json({ message: "Backend Task Gabon en ligne" });
 });
 
-const codes = new Map();
+const codes = new Map();   // email -> { code, expiresAt }
+const sessions = new Map(); // token -> { email, expiresAt }
 
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST,
@@ -43,15 +45,16 @@ const transporter = nodemailer.createTransport({
 });
 
 transporter.verify((err, success) => {
-  if (err) {
-    console.error("SMTP non disponible :", err.message);
-  } else {
-    console.log("SMTP prêt :", success);
-  }
+  if (err) console.error("SMTP non disponible :", err.message);
+  else console.log("SMTP prêt :", success);
 });
 
 function generateCode() {
   return String(Math.floor(100000 + Math.random() * 900000));
+}
+
+function generateToken() {
+  return crypto.randomBytes(32).toString("hex");
 }
 
 app.post("/api/send-code", async (req, res) => {
@@ -86,7 +89,6 @@ app.post("/api/send-code", async (req, res) => {
       `,
     });
 
-    console.log(`Code envoyé à ${email} : ${code}`);
     return res.json({ message: "Code envoyé avec succès." });
   } catch (error) {
     console.error("Erreur send-code:", error);
@@ -117,7 +119,36 @@ app.post("/api/verify-code", (req, res) => {
   }
 
   codes.delete(email);
-  return res.json({ message: "Code validé avec succès." });
+
+  const token = generateToken();
+  sessions.set(token, {
+    email,
+    expiresAt: Date.now() + 24 * 60 * 60 * 1000, // 24h
+  });
+
+  return res.json({
+    message: "Code validé avec succès.",
+    token,
+  });
+});
+
+app.get("/api/session-check", (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) {
+    return res.status(401).json({ message: "Non autorisé." });
+  }
+
+  const session = sessions.get(token);
+  if (!session) {
+    return res.status(401).json({ message: "Session invalide." });
+  }
+
+  if (Date.now() > session.expiresAt) {
+    sessions.delete(token);
+    return res.status(401).json({ message: "Session expirée." });
+  }
+
+  return res.json({ message: "Session valide.", email: session.email });
 });
 
 app.listen(PORT, () => {
