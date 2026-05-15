@@ -4,6 +4,7 @@ const nodemailer = require("nodemailer");
 require("dotenv").config();
 
 const app = express();
+
 const PORT = process.env.PORT || 5000;
 
 const allowedOrigins = [
@@ -15,8 +16,12 @@ app.use(
   cors({
     origin: function (origin, callback) {
       if (!origin) return callback(null, true);
-      if (allowedOrigins.includes(origin)) return callback(null, true);
-      return callback(new Error("Not allowed by CORS"));
+
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(new Error("CORS non autorisé"));
     },
   })
 );
@@ -24,34 +29,39 @@ app.use(
 app.use(express.json());
 
 app.get("/", (req, res) => {
-  res.json({ message: "Backend Task Gabon en ligne" });
+  res.json({
+    success: true,
+    message: "Backend Task Gabon opérationnel",
+  });
 });
 
-const codes = new Map();
+const verificationCodes = new Map();
 
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST,
-  port: Number(process.env.SMTP_PORT || 587),
+  port: Number(process.env.SMTP_PORT),
   secure: String(process.env.SMTP_SECURE).toLowerCase() === "true",
+
   auth: {
     user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
+    pass: (process.env.SMTP_PASS || "").replace(/\s+/g, ""),
   },
-  connectionTimeout: 10000,
-  greetingTimeout: 10000,
-  socketTimeout: 10000,
+
+  tls: {
+    rejectUnauthorized: false,
+  },
 });
 
-transporter.verify((err, success) => {
-  if (err) {
-    console.error("SMTP non disponible :", err.message);
+transporter.verify((error, success) => {
+  if (error) {
+    console.error("Erreur SMTP :", error);
   } else {
     console.log("SMTP prêt :", success);
   }
 });
 
 function generateCode() {
-  return String(Math.floor(100000 + Math.random() * 900000));
+  return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
 app.post("/api/send-code", async (req, res) => {
@@ -59,67 +69,119 @@ app.post("/api/send-code", async (req, res) => {
     const { email } = req.body;
 
     if (!email) {
-      return res.status(400).json({ message: "Email manquant." });
-    }
-
-    if (!process.env.SMTP_USER || !process.env.SMTP_PASS || !process.env.SMTP_HOST) {
-      return res.status(500).json({ message: "Configuration SMTP manquante." });
+      return res.status(400).json({
+        success: false,
+        message: "Email requis",
+      });
     }
 
     const code = generateCode();
-    const expiresAt = Date.now() + 10 * 60 * 1000;
 
-    codes.set(email, { code, expiresAt });
+    verificationCodes.set(email, {
+      code,
+      expiresAt: Date.now() + 10 * 60 * 1000,
+    });
 
     await transporter.sendMail({
-      from: process.env.FROM_EMAIL || process.env.SMTP_USER,
+      from: process.env.FROM_EMAIL,
       to: email,
       subject: "Code de confirmation Task Gabon",
-      text: `Ton code de confirmation est : ${code}`,
+
       html: `
-        <div style="font-family: Arial, sans-serif;">
-          <h2>Code de confirmation</h2>
-          <p>Ton code est :</p>
-          <div style="font-size: 28px; font-weight: bold; letter-spacing: 6px;">${code}</div>
-          <p>Il expire dans 10 minutes.</p>
+        <div style="font-family: Arial; padding: 20px;">
+          <h2>Bienvenue sur Task Gabon</h2>
+
+          <p>Voici votre code de confirmation :</p>
+
+          <div
+            style="
+              font-size: 32px;
+              font-weight: bold;
+              background: #f2f2f2;
+              padding: 15px;
+              width: fit-content;
+              letter-spacing: 5px;
+              border-radius: 10px;
+            "
+          >
+            ${code}
+          </div>
+
+          <p style="margin-top: 20px;">
+            Ce code expire dans 10 minutes.
+          </p>
         </div>
       `,
     });
 
     console.log(`Code envoyé à ${email} : ${code}`);
-    return res.json({ message: "Code envoyé avec succès." });
+
+    return res.json({
+      success: true,
+      message: "Code envoyé avec succès",
+    });
   } catch (error) {
-    console.error("Erreur send-code:", error);
-    return res.status(500).json({ message: "Erreur lors de l'envoi du code." });
+    console.error("Erreur SEND CODE :", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Erreur lors de l'envoi du code.",
+    });
   }
 });
 
 app.post("/api/verify-code", (req, res) => {
-  const { email, code } = req.body;
+  try {
+    const { email, code } = req.body;
 
-  if (!email || !code) {
-    return res.status(400).json({ message: "Email ou code manquant." });
+    if (!email || !code) {
+      return res.status(400).json({
+        success: false,
+        message: "Informations manquantes",
+      });
+    }
+
+    const storedData = verificationCodes.get(email);
+
+    if (!storedData) {
+      return res.status(400).json({
+        success: false,
+        message: "Aucun code trouvé",
+      });
+    }
+
+    if (Date.now() > storedData.expiresAt) {
+      verificationCodes.delete(email);
+
+      return res.status(400).json({
+        success: false,
+        message: "Code expiré",
+      });
+    }
+
+    if (storedData.code !== code) {
+      return res.status(400).json({
+        success: false,
+        message: "Code incorrect",
+      });
+    }
+
+    verificationCodes.delete(email);
+
+    return res.json({
+      success: true,
+      message: "Code validé",
+    });
+  } catch (error) {
+    console.error("Erreur VERIFY CODE :", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Erreur serveur",
+    });
   }
-
-  const stored = codes.get(email);
-
-  if (!stored) {
-    return res.status(400).json({ message: "Aucun code trouvé pour cet email." });
-  }
-
-  if (Date.now() > stored.expiresAt) {
-    codes.delete(email);
-    return res.status(400).json({ message: "Code expiré." });
-  }
-
-  if (stored.code !== code) {
-    return res.status(400).json({ message: "Code incorrect." });
-  }
-
-  codes.delete(email);
-  return res.json({ message: "Code validé avec succès." });
 });
 
 app.listen(PORT, () => {
-  console.log(`Backend lancé sur http://localhost:${PORT}`);
+  console.log(`Serveur démarré sur le port ${PORT}`);
 });

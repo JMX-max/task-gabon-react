@@ -9,7 +9,6 @@ export default function Login() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-
     const user = JSON.parse(localStorage.getItem("task-gabon-user") || "null");
 
     if (user && user.email === email && user.password === password) {
@@ -51,7 +50,10 @@ export default function Login() {
           Pas encore inscrit ? <Link to="/register">Créer un compte</Link>
         </p>
 
+        <div className="hint-box">
       
+         
+        </div>
       </section>
     </main>
   );

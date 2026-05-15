@@ -18,11 +18,7 @@ export default function Contact() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-
-    console.log(form);
-
     setSuccess("Message envoyé avec succès.");
-
     setForm({
       name: "",
       email: "",
@@ -34,28 +30,15 @@ export default function Contact() {
     <main className="page">
       <section className="hero">
         <h1>Contact</h1>
-
-        <p>
-          Une question, une suggestion ou un problème ?
-          Contactez l’équipe Task Gabon.
-        </p>
+        <p>Une question, une suggestion ou un problème ?</p>
       </section>
 
       <section className="contact-container">
         <div className="blog-card">
           <h2>Informations</h2>
-
-          <p>
-            📍 Libreville - Gabon
-          </p>
-
-          <p>
-            📧 contact@taskgabon.com
-          </p>
-
-          <p>
-            📞 +241 74 00 00 00
-          </p>
+          <p>📍 Libreville - Gabon</p>
+          <p>📧 contact@taskgabon.com</p>
+          <p>📞 +241 74 00 00 00</p>
         </div>
 
         <form className="blog-card" onSubmit={handleSubmit}>
@@ -85,15 +68,9 @@ export default function Contact() {
             onChange={updateField}
           />
 
-          <button type="submit">
-            Envoyer
-          </button>
+          <button type="submit">Envoyer</button>
 
-          {success && (
-            <p style={{ color: "green", marginTop: 10 }}>
-              {success}
-            </p>
-          )}
+          {success && <p style={{ color: "green", marginTop: 10 }}>{success}</p>}
         </form>
       </section>
     </main>

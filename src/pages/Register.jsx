@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
-const API_URL = import.meta.env.VITE_API_URL || "https://task-gabon-react-1.onrender.com";
+const API_URL =
+  import.meta.env.VITE_API_URL || "https://task-gabon-react-1.onrender.com";
 
 export default function Register() {
   const navigate = useNavigate();
@@ -200,7 +201,9 @@ export default function Register() {
         <div className="modal-overlay">
           <div className="modal-card">
             <h2>Vérification du code</h2>
-            <p>Entre le code reçu sur <strong>{pendingEmail}</strong>.</p>
+            <p>
+              Entre le code reçu sur <strong>{pendingEmail}</strong>.
+            </p>
 
             <form className="form" onSubmit={handleVerifyCode}>
               <input

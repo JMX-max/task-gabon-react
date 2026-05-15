@@ -1,19 +1,19 @@
 export default function Blog() {
-  const articles = [
+  const posts = [
     {
-      title: "Organisation des étudiants à Libreville",
+      title: "Comment mieux s’organiser à l’école",
       content:
-        "De nombreux étudiants gabonais ont du mal à organiser leurs projets universitaires. Une bonne gestion des tâches améliore la productivité.",
+        "Une liste de tâches aide à suivre les cours, les révisions et les exposés sans tout mélanger.",
     },
     {
-      title: "Pourquoi utiliser le cloud ?",
+      title: "Pourquoi React est utile",
       content:
-        "Grâce à Firebase, les tâches sont sauvegardées en ligne et accessibles depuis plusieurs appareils.",
+        "React permet de découper l’application en composants et de rendre l’interface dynamique.",
     },
     {
-      title: "Le développement web au Gabon",
+      title: "Le numérique dans le quotidien",
       content:
-        "Le secteur du numérique évolue rapidement au Gabon avec l’augmentation des formations en développement web et mobile.",
+        "Une petite application bien pensée peut améliorer l’organisation personnelle de façon concrète.",
     },
   ];
 
@@ -21,21 +21,17 @@ export default function Blog() {
     <main className="page">
       <section className="hero">
         <h1>Blog</h1>
-
-        <p>
-          Découvrez des articles sur la productivité,
-          les études et le numérique au Gabon.
-        </p>
+        <p>Petits articles pour accompagner le projet.</p>
       </section>
 
-      <section className="blog-grid">
-        {articles.map((article, index) => (
-          <article key={index} className="blog-card">
-            <h2>{article.title}</h2>
-            <p>{article.content}</p>
+      <div className="blog-list">
+        {posts.map((post, index) => (
+          <article key={index} className="blog-post">
+            <h2>{post.title}</h2>
+            <p>{post.content}</p>
           </article>
         ))}
-      </section>
+      </div>
     </main>
   );
 }

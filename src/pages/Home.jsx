@@ -3,7 +3,9 @@ import { useNavigate } from "react-router-dom";
 
 export default function Home() {
   const navigate = useNavigate();
-  const currentUser = JSON.parse(localStorage.getItem("task-gabon-current-user") || "null");
+  const currentUser = JSON.parse(
+    localStorage.getItem("task-gabon-current-user") || "null"
+  );
 
   const [tasks, setTasks] = useState(() => {
     const saved = localStorage.getItem("task-gabon-tasks");
@@ -58,7 +60,6 @@ export default function Home() {
         filter === "all" ||
         (filter === "done" && task.completed) ||
         (filter === "pending" && !task.completed);
-
       return matchesSearch && matchesFilter;
     });
   }, [tasks, search, filter]);
@@ -70,7 +71,9 @@ export default function Home() {
 
     if (editingId !== null) {
       setTasks((prev) =>
-        prev.map((task) => (task.id === editingId ? { ...task, ...form } : task))
+        prev.map((task) =>
+          task.id === editingId ? { ...task, ...form } : task
+        )
       );
     } else {
       setTasks((prev) => [
@@ -121,21 +124,21 @@ export default function Home() {
 
   return (
     <main className="page">
-<header className="hero">
-  <div className="hero-top">
-    <div>
-      <h1>Accueil</h1>
+      <header className="hero">
+        <div className="hero-top">
+          <div>
+            <h1>Accueil</h1>
+            <p>
+              Bonjour {currentUser?.prenom} {currentUser?.nom}, ton espace
+              personnel est prêt.
+            </p>
+          </div>
 
-      <p>
-        Bonjour {currentUser?.prenom} {currentUser?.nom}, ton espace personnel est prêt.
-      </p>
-    </div>
-
-    <button className="logout-btn" onClick={logout}>
-      Déconnexion
-    </button>
-  </div>
-</header>
+          <button className="logout-btn" onClick={logout}>
+            Déconnexion
+          </button>
+        </div>
+      </header>
 
       <section className="home-grid">
         <div className="blog-card">
@@ -211,7 +214,10 @@ export default function Home() {
 
           <div className="task-list">
             {visibleTasks.map((task) => (
-              <article key={task.id} className={`task-item ${task.completed ? "done" : ""}`}>
+              <article
+                key={task.id}
+                className={`task-item ${task.completed ? "done" : ""}`}
+              >
                 <div>
                   <h3>{task.title}</h3>
                   <p>{task.description}</p>
