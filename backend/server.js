@@ -132,7 +132,6 @@ app.post("/api/verify-code", (req, res) => {
     });
   }
 });
-
 app.listen(PORT, () => {
   console.log(`Serveur lancé sur le port ${PORT}`);
 });
