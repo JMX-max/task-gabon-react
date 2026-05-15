@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
-const API_URL = import.meta.env.VITE_API_URL || "https://task-gabon-react.onrender.com";
+const API_URL = import.meta.env.VITE_API_URL || "https://task-gabon-react-1.onrender.com";
 
 export default function Register() {
   const navigate = useNavigate();
