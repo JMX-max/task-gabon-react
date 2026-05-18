@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { db } from "../firebase";
+import { collection, addDoc } from "firebase/firestore";
 
 const API_URL =
   import.meta.env.VITE_API_URL || "https://task-gabon-react-1.onrender.com";
@@ -106,6 +108,16 @@ export default function Register() {
         telephone: form.telephone,
         password: form.password,
       };
+
+      await addDoc(collection(db, "users"), {
+        nom: form.nom,
+        prenom: form.prenom,
+        email: form.email,
+        genre: form.genre,
+        nationalite: form.nationalite,
+        telephone: form.telephone,
+        createdAt: new Date(),
+      });
 
       localStorage.setItem("task-gabon-user", JSON.stringify(user));
       localStorage.setItem("task-gabon-current-user", JSON.stringify(user));

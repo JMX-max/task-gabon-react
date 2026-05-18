@@ -1,18 +1,21 @@
 import { initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
+import { getAnalytics } from "firebase/analytics";
+
+import {
+  getFirestore
+} from "firebase/firestore";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyAzRZVkBtIHVogm4tYROc38UhXR7-xGaPw",
-  authDomain: "tachegabon.firebaseapp.com",
-  projectId: "tachegabon",
-  storageBucket: "tachegabon.firebasestorage.app",
-  messagingSenderId: "252796907311",
-  appId: "1:252796907311:web:1de4b5b13fa46c78cb7bda",
-   measurementId: "G-RE3PLRL3ZB"
+  apiKey: "AIzaSyCpvUD04TVEszKwZVO3fGmM3jS1jnehMV4",
+  authDomain: "task-gabon.firebaseapp.com",
+  projectId: "task-gabon",
+  storageBucket: "task-gabon.firebasestorage.app",
+  messagingSenderId: "1035531961007",
+  appId: "1:1035531961007:web:b88886d3553e1010ed0a5a",
+  measurementId: "G-6VXJB5G20B"
 };
 
 const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
 
-export const auth = getAuth(app);
 export const db = getFirestore(app);
